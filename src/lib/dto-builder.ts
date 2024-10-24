@@ -33,8 +33,8 @@ export type DtoBuilderBase<DTO extends object | null> = {
     override?: Partial<DTO>,
   ) => Either<DtoValidationFailedException<DTO>, DTO>;
   patch: (override: Partial<DTO>) => DtoBuilder<DTO>;
-  useValidator: (validator: DtoObjectValidator<DTO>) => DtoBuilder<DTO>;
-  useTransformer: (transformer: DtoObjectTransformer<DTO>) => DtoBuilder<DTO>;
+  useValidator: (validator?: DtoObjectValidator<DTO>) => DtoBuilder<DTO>;
+  useTransformer: (transformer?: DtoObjectTransformer<DTO>) => DtoBuilder<DTO>;
 };
 
 export type DtoBuilderGetter<DTO extends object | null> = {
