@@ -96,14 +96,16 @@ export function createBuilder<DTO extends object | null>(
     return builder;
   }
 
-  function useValidator(validatorFn: DtoObjectValidator<DTO>): DtoBuilder<DTO> {
+  function useValidator(
+    validatorFn?: DtoObjectValidator<DTO>,
+  ): DtoBuilder<DTO> {
     validator = validatorFn;
 
     return builder;
   }
 
   function useTransformer(
-    transformerFn: DtoObjectTransformer<DTO>,
+    transformerFn?: DtoObjectTransformer<DTO>,
   ): DtoBuilder<DTO> {
     transformer = transformerFn;
 
