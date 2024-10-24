@@ -82,13 +82,25 @@ export function createBuilder<DTO extends object | null>(
   let transformer: DtoObjectTransformer<DTO> | undefined;
 
   function clone(): DtoBuilder<DTO> {
-    return createBuilder<DTO>({ ...dto });
+    const clone = createBuilder<DTO>({ ...dto });
+
+    clone.useTransformer(transformer);
+    clone.useValidator(validator);
+
+    return clone;
   }
 
   function extend<EXT_DTO extends object>(
     override: Partial<DTO & EXT_DTO> = {},
   ): DtoBuilder<DTO & EXT_DTO> {
-    return createBuilder<DTO & EXT_DTO>({ ...dto, ...override });
+    const extension = createBuilder<DTO & EXT_DTO>({ ...dto, ...override });
+
+    extension.useTransformer(
+      transformer as DtoObjectTransformer<DTO & EXT_DTO>,
+    );
+    extension.useValidator(validator);
+
+    return extension;
   }
 
   function patch(override: Partial<DTO>): DtoBuilder<DTO> {
