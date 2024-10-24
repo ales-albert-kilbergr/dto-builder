@@ -1,7 +1,8 @@
 import { createBuilder } from './dto-builder';
-import { left, right } from 'fp-ts/Either';
+import { isRight, left, right } from 'fp-ts/Either';
 
 describe('(Unit) Dto Builder', () => {
+  // MARK: Dynamic Getters and Setters
   describe('when accessing the dynamic getters and setters', () => {
     it('should expose setter and getter based on an interface', () => {
       // Arrange
@@ -68,6 +69,7 @@ describe('(Unit) Dto Builder', () => {
     });
   });
 
+  // MARK: Clone
   describe('when cloning the builder', () => {
     it('should create a clone with already set values', () => {
       // Arrange
@@ -101,6 +103,7 @@ describe('(Unit) Dto Builder', () => {
     });
   });
 
+  // MARK: Extend
   describe('when extending the builder', () => {
     it('should extend the builder with new properties', () => {
       // Arrange
@@ -123,6 +126,7 @@ describe('(Unit) Dto Builder', () => {
     });
   });
 
+  // MARK: Build
   describe('when building the DTO object', () => {
     it('should build the DTO object', () => {
       // Arrange
@@ -137,8 +141,23 @@ describe('(Unit) Dto Builder', () => {
       // Assert
       expect(dto).toEqual(right({ foo: value }));
     });
+
+    it('should keep the camel cased properties', () => {
+      // Arrange
+      interface TestDto {
+        fooBar: string;
+      }
+      const value = 'bar';
+      // Act
+      const builder = createBuilder<TestDto>();
+      builder.setFooBar(value);
+      const dto = builder.build();
+      // Assert
+      expect(dto).toEqual(right({ fooBar: value }));
+    });
   });
 
+  // MARK: Patch
   describe('when patching the DTO object', () => {
     it('should allow to patch the DTO object', () => {
       // Arrange
@@ -172,6 +191,7 @@ describe('(Unit) Dto Builder', () => {
     });
   });
 
+  // MARK: Add
   describe('when adding an array value', () => {
     it('should allow to add a value to an array', () => {
       // Arrange
@@ -202,6 +222,7 @@ describe('(Unit) Dto Builder', () => {
     });
   });
 
+  // MARK: Count
   describe('when counting the array values', () => {
     it('should return the correct count of array values', () => {
       // Arrange
@@ -227,8 +248,23 @@ describe('(Unit) Dto Builder', () => {
       // Assert
       expect(builder.countFoo()).toBe(0);
     });
+
+    it('should count an array under prop with capital letter', () => {
+      // Arrange
+      interface TestDto {
+        fooBar: string[];
+      }
+      const value = 'bar';
+      const newValue = 'baz';
+      // Act
+      const builder = createBuilder<TestDto>();
+      builder.setFooBar([value, newValue]);
+      // Assert
+      expect(builder.countFooBar()).toBe(2);
+    });
   });
 
+  // MARK: Use Validator
   describe('when validating the DTO object', () => {
     it('should return a validation error if the DTO object is not valid', () => {
       // Arrange
@@ -237,13 +273,50 @@ describe('(Unit) Dto Builder', () => {
       }
       const error = new Error('Invalid DTO object');
       // Act
-      const builder = createBuilder<TestDto, Error>(
-        {},
-        { validate: () => error },
-      );
+      const builder = createBuilder<TestDto>({}).useValidator(() => error);
       const dto = builder.build();
       // Assert
       expect(dto).toEqual(left(expect.any(Error)));
+    });
+
+    it('should return a reference to the builder if the validator is successful', () => {
+      // Arrange
+      interface TestDto {
+        foo: string;
+      }
+      // Act
+      const builder = createBuilder<TestDto>({});
+      const returnedBuilder = builder.useValidator(() => true);
+      // Assert
+      expect(builder).toBe(returnedBuilder);
+    });
+  });
+
+  // MARK: Use Transformer
+  describe('when transforming the DTO object', () => {
+    it('should transform the DTO object', () => {
+      // Arrange
+      class TestDto {
+        public foo?: string;
+      }
+      const value = 'bar';
+      function transform(dto: TestDto) {
+        const obj = new TestDto();
+        Object.assign(obj, dto);
+
+        return obj;
+      }
+      // Act
+      const builder = createBuilder<TestDto>({ foo: value }).useTransformer(
+        transform,
+      );
+      const dto = builder.build();
+      // Assert
+      console.log(dto);
+      expect(isRight(dto)).toBeTruthy();
+      if (isRight(dto)) {
+        expect(dto.right).toBeInstanceOf(TestDto);
+      }
     });
   });
 });
