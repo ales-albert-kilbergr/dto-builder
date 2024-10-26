@@ -7,10 +7,14 @@ export class DtoValidationFailedException<
 
   public constructor(dto: DTO, validationError: Error | Error[]) {
     const validationErrorMessage = Array.isArray(validationError)
-      ? validationError.map((error) => error.message).join('\n')
+      ? validationError
+          .map((error) => `[${error.constructor.name}]: ${error.message}`)
+          .join('\n\t')
       : validationError.message;
 
-    super('Cannot build a DTO. Validation failed! ' + validationErrorMessage);
+    super(
+      'Cannot build a DTO. Validation failed!\n\t' + validationErrorMessage,
+    );
 
     this.dto = dto;
     this.validationErrors = Array.isArray(validationError)

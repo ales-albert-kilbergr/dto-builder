@@ -1,137 +1,178 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { deepClone } from './deep-clone';
+import type {
+  DtoBuilderProxy,
+  DtoObjectTransformer,
+  DtoObjectValidator,
+} from './dto-builder.types';
 import { type Either, left, right } from 'fp-ts/Either';
 import { DtoValidationFailedException } from './dto-validation-failed.exception';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type IsArray<T> = T extends any[] ? true : false;
-
-// Helper type to define methods for array properties
-export type AddMethod<T, K extends keyof T> =
-  T[K] extends Array<infer U>
-    ? { [Method in `add${Capitalize<string & K>}`]: (...item: U[]) => void }
-    : object;
-
-export type CountMethod<T, K extends keyof T> =
-  T[K] extends Array<any>
-    ? { [Method in `count${Capitalize<string & K>}`]: () => number }
-    : object;
-
-export type DtoObjectValidator<DTO extends object | null> = (
-  data: Partial<DTO>,
-) => true | Error | Error[];
-
-export type DtoObjectTransformer<DTO extends object | null> = (
-  data: Partial<DTO>,
-) => DTO;
-
-export type DtoBuilderBase<DTO extends object | null> = {
-  clone: () => DtoBuilder<DTO>;
-  extend: <EXT_DTO extends object>(
-    override?: Partial<EXT_DTO & DTO>,
-  ) => DtoBuilder<DTO & EXT_DTO>;
-  build: (
-    override?: Partial<DTO>,
-  ) => Either<DtoValidationFailedException<DTO>, DTO>;
-  patch: (override: Partial<DTO>) => DtoBuilder<DTO>;
-  useValidator: (validator?: DtoObjectValidator<DTO>) => DtoBuilder<DTO>;
-  useTransformer: (transformer?: DtoObjectTransformer<DTO>) => DtoBuilder<DTO>;
-};
-
-export type DtoBuilderGetter<DTO extends object | null> = {
-  [K in keyof DTO as `get${Capitalize<string & K>}`]-?: {
-    (): DTO[K];
-  };
-};
-
-export type DtoBuilderSetter<DTO extends object | null> = {
-  [K in keyof DTO as `set${Capitalize<string & K>}`]-?: {
-    (value: DTO[K]): DtoBuilder<DTO>;
-  };
-};
-
-export type DtoAddMethod<DTO extends object | null> = {
-  [K in keyof DTO as AddMethod<DTO, K> extends object
-    ? keyof AddMethod<DTO, K>
-    : never]: AddMethod<DTO, K>[keyof AddMethod<DTO, K>];
-};
-
-export type DtoCountMethod<DTO extends object | null> = {
-  [K in keyof DTO as CountMethod<DTO, K> extends object
-    ? keyof CountMethod<DTO, K>
-    : never]: CountMethod<DTO, K>[keyof CountMethod<DTO, K>];
-};
-
-export type DtoBuilder<DTO extends object | null> = DtoBuilderBase<DTO> &
-  DtoBuilderSetter<DTO> &
-  DtoBuilderGetter<DTO> &
-  DtoAddMethod<DTO> &
-  DtoCountMethod<DTO>;
-
-function extractKey<DTO>(prefix: string, prop: string): keyof DTO {
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+export function extractKey<DTO extends object = object>(
+  prefix: string,
+  prop: string,
+): keyof DTO {
   return prop
     .replace(new RegExp(`^${prefix}`), '')
     .replace(/^[A-Z]/, (match) => match.toLowerCase()) as keyof DTO;
 }
 
-export function createDtoBuilder<DTO extends object | null>(
-  initData: Partial<DTO> = {},
-): DtoBuilder<DTO> {
-  const dto: Partial<DTO> = initData;
+export class DtoBuilder<DTO extends object = object> {
+  protected dto: Partial<DTO>;
 
-  let validator: DtoObjectValidator<DTO> | undefined;
-  let transformer: DtoObjectTransformer<DTO> | undefined;
+  protected validator: DtoObjectValidator<DTO> | undefined;
 
-  function clone(): DtoBuilder<DTO> {
-    const clone = createDtoBuilder<DTO>({ ...dto });
+  protected transformer: DtoObjectTransformer<DTO> | undefined;
 
-    clone.useTransformer(transformer);
-    clone.useValidator(validator);
-
-    return clone;
+  public constructor(initData: Partial<DTO> = {}) {
+    this.dto = initData;
   }
 
-  function extend<EXT_DTO extends object>(
-    override: Partial<DTO & EXT_DTO> = {},
-  ): DtoBuilder<DTO & EXT_DTO> {
-    const extension = createDtoBuilder<DTO & EXT_DTO>({ ...dto, ...override });
+  public static create<
+    DTO extends object,
+    T extends DtoBuilder<DTO> = DtoBuilder<DTO>,
+  >(
+    this: new (initData?: Partial<DTO>) => T,
+    initData: Partial<DTO> = {},
+  ): DtoBuilderProxy<T> {
+    const target = new this(initData);
 
-    extension.useTransformer(
-      transformer as DtoObjectTransformer<DTO & EXT_DTO>,
-    );
-    extension.useValidator(validator);
+    const proxy: DtoBuilderProxy<T> = new Proxy(target, {
+      get(_, prop: string | symbol) {
+        // 1: --------------------------------------------------------------------
+        // Call methods in base if they exists
+        const baseObj: any = target;
+        if (prop in baseObj && typeof baseObj[prop] === 'function') {
+          return (...args: any[]) => {
+            const result = Reflect.apply(baseObj[prop], baseObj, args);
+            // If the method returns the base object ref, we expect that it
+            // is a chaining method and we should return the wrapper builder
+            // instead.
+            return result === baseObj ? proxy : result;
+          };
+        }
+        // 2: --------------------------------------------------------------------
+        // Exclude all symbol access.
+        if (typeof prop === 'symbol') {
+          throw new TypeError(
+            'Symbol properties are not supported on a DTO builder',
+          );
+        }
+        // 3: --------------------------------------------------------------------
+        // Generate setters based on the given interface
+        if (/^set[A-Z]/.test(prop)) {
+          const key = extractKey<DTO>('set', prop);
+          return (value: DTO[keyof DTO]): DtoBuilderProxy<T> => {
+            target.set(key, value);
+            return proxy;
+          };
+        }
+        // 4: --------------------------------------------------------------------
+        // Generate getters based on the given interface
+        if (/^get[A-Z]/.test(prop)) {
+          const key = extractKey<DTO>('get', prop);
+          return () => target.get(key);
+        }
+        // 5: --------------------------------------------------------------------
+        // Generate add methods for array properties
+        if (/add[A-Z]/.test(prop)) {
+          const key = extractKey<DTO>('add', prop);
+          return (...value: DTO[keyof DTO][]) => {
+            const arr: any[] = (target.get(key) ?? []) as any[];
 
-    return extension;
+            arr.push(...value);
+
+            target.set(key, arr as DTO[keyof DTO]);
+
+            return proxy;
+          };
+        }
+
+        // 6: --------------------------------------------------------------------
+        // Generate count methods for array properties
+        if (/count[A-Z]/.test(prop)) {
+          const key = extractKey('count', prop);
+          return () => {
+            const arr: any[] | undefined = target.get(key) as any[] | undefined;
+
+            if (!arr) {
+              return 0;
+            }
+
+            return arr.length;
+          };
+        }
+
+        throw new TypeError(
+          `Property "${prop}" does not exist on Data builder`,
+        );
+      },
+    }) as DtoBuilderProxy<T>;
+
+    return proxy;
   }
 
-  function patch(override: Partial<DTO>): DtoBuilder<DTO> {
-    Object.assign(dto, override);
-    return builder;
+  public set(value: DTO): this;
+  public set(key: keyof DTO, value: DTO[keyof DTO]): this;
+  public set(keyOrValue: keyof DTO | DTO, value?: DTO[keyof DTO]): this {
+    if (typeof keyOrValue === 'object') {
+      this.dto = keyOrValue;
+    } else {
+      this.dto[keyOrValue] = value;
+    }
+
+    return this;
   }
 
-  function useValidator(
-    validatorFn?: DtoObjectValidator<DTO>,
-  ): DtoBuilder<DTO> {
-    validator = validatorFn;
+  public patch(override: Partial<DTO>): this {
+    Object.assign(this.dto, override);
 
-    return builder;
+    return this;
   }
 
-  function useTransformer(
-    transformerFn?: DtoObjectTransformer<DTO>,
-  ): DtoBuilder<DTO> {
-    transformer = transformerFn;
+  public get(): Partial<DTO>;
+  public get(key: keyof DTO): DTO[keyof DTO] | undefined;
+  public get(key?: keyof DTO): Partial<DTO> | DTO[keyof DTO] | undefined {
+    if (key) {
+      return this.dto[key];
+    }
 
-    return builder;
+    return this.dto;
   }
 
-  function build(
+  public clone(): this {
+    const self = this.constructor as any;
+    const clone = self.create(deepClone(this.dto));
+
+    clone.useTransformer(this.transformer);
+    clone.useValidator(this.validator);
+
+    return clone as unknown as this;
+  }
+
+  public useValidator(validatorFn?: DtoObjectValidator<DTO>): this {
+    this.validator = validatorFn;
+
+    return this;
+  }
+
+  public useTransformer(transformerFn?: DtoObjectTransformer<DTO>): this {
+    this.transformer = transformerFn;
+
+    return this;
+  }
+
+  public build(
     override: Partial<DTO> = {},
   ): Either<DtoValidationFailedException<DTO>, DTO> {
-    const dtoData = Object.assign({}, dto, override);
-    const dtoObj: DTO = transformer ? transformer(dtoData) : (dtoData as DTO);
+    const dtoData = Object.assign({}, this.dto, override);
+    const dtoObj = this.transformer
+      ? this.transformer(dtoData)
+      : (dtoData as DTO);
 
-    if (validator) {
-      const validationError = validator(dtoData);
+    if (this.validator) {
+      const validationError = this.validator(dtoData);
 
       if (validationError !== true) {
         return left(
@@ -142,98 +183,4 @@ export function createDtoBuilder<DTO extends object | null>(
 
     return right(dtoObj);
   }
-
-  function createAddMethod(propertyKey: keyof DTO) {
-    return (...value: DTO[keyof DTO][]) => {
-      if (!Array.isArray(dto[propertyKey])) {
-        (dto as any)[propertyKey] = [];
-      }
-
-      (dto[propertyKey] as any).push(...value);
-
-      return builder;
-    };
-  }
-
-  function createCountMethod(propertyKey: keyof DTO) {
-    return () => {
-      if (!Array.isArray(dto[propertyKey])) {
-        return 0;
-      }
-
-      return (dto[propertyKey] as any).length;
-    };
-  }
-
-  function createSetter(propertyKey: keyof DTO) {
-    return (value: DTO[keyof DTO]) => {
-      dto[propertyKey] = value;
-      return builder;
-    };
-  }
-
-  function createGetter(propertyKey: keyof DTO) {
-    return () => dto[propertyKey];
-  }
-
-  const base: DtoBuilderBase<DTO> = {
-    clone,
-    extend,
-    patch,
-    useValidator,
-    useTransformer,
-    build,
-  };
-
-  const builder: DtoBuilder<DTO> = new Proxy(base, {
-    get(_, prop: string | symbol) {
-      // 1: --------------------------------------------------------------------
-      // Call methods in base if they exists
-      const baseObj: any = base;
-      if (prop in baseObj && typeof baseObj[prop] === 'function') {
-        return (...args: any[]) => {
-          const result = Reflect.apply(baseObj[prop], baseObj, args);
-          // If the method returns the base object ref, we expect that it
-          // is a chaining method and we should return the wrapper builder
-          // instead.
-          return result === baseObj ? builder : result;
-        };
-      }
-      // 2: --------------------------------------------------------------------
-      // Exclude all symbol access.
-      if (typeof prop === 'symbol') {
-        throw new TypeError(
-          'Symbol properties are not supported on a DTO builder',
-        );
-      }
-
-      // 3: --------------------------------------------------------------------
-      // Generate setters based on the given interface
-      if (/^set[A-Z]/.test(prop)) {
-        return createSetter(extractKey('set', prop));
-      }
-
-      // 4: --------------------------------------------------------------------
-      // Generate getters based on the given interface
-      if (/^get[A-Z]/.test(prop)) {
-        return createGetter(extractKey('get', prop));
-      }
-
-      // 5: --------------------------------------------------------------------
-      // Generate add methods for array properties
-      if (/add[A-Z]/.test(prop)) {
-        return createAddMethod(extractKey('add', prop));
-      }
-
-      // 6: --------------------------------------------------------------------
-      // Generate count methods for array properties
-      if (/count[A-Z]/.test(prop)) {
-        return createCountMethod(extractKey('count', prop));
-      }
-
-      throw new TypeError(`Property "${prop}" does not exist on Data builder`);
-    },
-  }) as DtoBuilder<DTO>;
-
-  return builder as DtoBuilder<DTO>;
 }
