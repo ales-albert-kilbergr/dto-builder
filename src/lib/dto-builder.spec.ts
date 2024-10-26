@@ -1,4 +1,4 @@
-import { createBuilder } from './dto-builder';
+import { createDtoBuilder } from './dto-builder';
 import { isRight, left, right } from 'fp-ts/Either';
 
 describe('(Unit) Dto Builder', () => {
@@ -11,7 +11,7 @@ describe('(Unit) Dto Builder', () => {
       }
       const value = 'bar';
       // Act
-      const builder = createBuilder<TestDto>();
+      const builder = createDtoBuilder<TestDto>();
       builder.setFoo(value);
       // Assert
       expect(builder.getFoo()).toBe(value);
@@ -24,7 +24,7 @@ describe('(Unit) Dto Builder', () => {
       }
       const value = 42;
       // Act
-      const builder = createBuilder<TestDto>();
+      const builder = createDtoBuilder<TestDto>();
       // Assert
       // @ts-expect-error - forcing a wrong value type
       builder.setFoo(value);
@@ -36,7 +36,7 @@ describe('(Unit) Dto Builder', () => {
         foo?: string;
       }
       // Act
-      const builder = createBuilder<TestDto>();
+      const builder = createDtoBuilder<TestDto>();
       builder.setFoo(undefined);
       // Assert
       expect(builder.getFoo()).toBeUndefined();
@@ -48,7 +48,7 @@ describe('(Unit) Dto Builder', () => {
         foo: string;
       }
       // Act
-      const builder = createBuilder<TestDto>();
+      const builder = createDtoBuilder<TestDto>();
       // @ts-expect-error - forcing a symbol access
       const act = () => builder[Symbol('foo')];
       // Assert
@@ -61,7 +61,7 @@ describe('(Unit) Dto Builder', () => {
         foo: string;
       }
       // Act
-      const builder = createBuilder<TestDto>();
+      const builder = createDtoBuilder<TestDto>();
       // @ts-expect-error - forcing an unexpected access
       const act = () => builder.foo;
       // Assert
@@ -78,7 +78,7 @@ describe('(Unit) Dto Builder', () => {
       }
       const value = 'bar';
       // Act
-      const builder = createBuilder<TestDto>();
+      const builder = createDtoBuilder<TestDto>();
       builder.setFoo(value);
       const clone = builder.clone();
       // Assert
@@ -93,7 +93,7 @@ describe('(Unit) Dto Builder', () => {
       const value = 'bar';
       const newValue = 'baz';
       // Act
-      const builder = createBuilder<TestDto>();
+      const builder = createDtoBuilder<TestDto>();
       builder.setFoo(value);
       const clone = builder.clone();
       clone.setFoo(newValue);
@@ -116,7 +116,7 @@ describe('(Unit) Dto Builder', () => {
       const value = 'bar';
       const newValue = 42;
       // Act
-      const builder = createBuilder<TestDto>();
+      const builder = createDtoBuilder<TestDto>();
       builder.setFoo(value);
       const extended = builder.extend<ExtendedDto>();
       extended.setBar(newValue);
@@ -135,7 +135,7 @@ describe('(Unit) Dto Builder', () => {
       }
       const value = 'bar';
       // Act
-      const builder = createBuilder<TestDto>();
+      const builder = createDtoBuilder<TestDto>();
       builder.setFoo(value);
       const dto = builder.build();
       // Assert
@@ -149,7 +149,7 @@ describe('(Unit) Dto Builder', () => {
       }
       const value = 'bar';
       // Act
-      const builder = createBuilder<TestDto>();
+      const builder = createDtoBuilder<TestDto>();
       builder.setFooBar(value);
       const dto = builder.build();
       // Assert
@@ -167,7 +167,7 @@ describe('(Unit) Dto Builder', () => {
       const value = 'bar';
       const newValue = 'baz';
       // Act
-      const builder = createBuilder<TestDto>();
+      const builder = createDtoBuilder<TestDto>();
       builder.setFoo(value);
       const patched = builder.patch({ foo: newValue });
       // Assert
@@ -183,7 +183,7 @@ describe('(Unit) Dto Builder', () => {
       const value = 'bar';
       const newValue = 'baz';
       // Act
-      const builder = createBuilder<TestDto>();
+      const builder = createDtoBuilder<TestDto>();
       builder.setFoo(value).setBar(42);
       builder.patch({ foo: newValue });
       // Assert
@@ -201,7 +201,7 @@ describe('(Unit) Dto Builder', () => {
       const value = 'bar';
       const newValue = 'baz';
       // Act
-      const builder = createBuilder<TestDto>();
+      const builder = createDtoBuilder<TestDto>();
       builder.setFoo([value]);
       builder.addFoo(newValue);
       // Assert
@@ -215,7 +215,7 @@ describe('(Unit) Dto Builder', () => {
       }
       const newValue = 'baz';
       // Act
-      const builder = createBuilder<TestDto>();
+      const builder = createDtoBuilder<TestDto>();
       builder.addFoo(newValue);
       // Assert
       expect(builder.getFoo()).toEqual([newValue]);
@@ -232,7 +232,7 @@ describe('(Unit) Dto Builder', () => {
       const value = 'bar';
       const newValue = 'baz';
       // Act
-      const builder = createBuilder<TestDto>();
+      const builder = createDtoBuilder<TestDto>();
       builder.setFoo([value, newValue]);
       // Assert
       expect(builder.countFoo()).toBe(2);
@@ -244,7 +244,7 @@ describe('(Unit) Dto Builder', () => {
         foo: string[];
       }
       // Act
-      const builder = createBuilder<TestDto>();
+      const builder = createDtoBuilder<TestDto>();
       // Assert
       expect(builder.countFoo()).toBe(0);
     });
@@ -257,7 +257,7 @@ describe('(Unit) Dto Builder', () => {
       const value = 'bar';
       const newValue = 'baz';
       // Act
-      const builder = createBuilder<TestDto>();
+      const builder = createDtoBuilder<TestDto>();
       builder.setFooBar([value, newValue]);
       // Assert
       expect(builder.countFooBar()).toBe(2);
@@ -273,7 +273,7 @@ describe('(Unit) Dto Builder', () => {
       }
       const error = new Error('Invalid DTO object');
       // Act
-      const builder = createBuilder<TestDto>({}).useValidator(() => error);
+      const builder = createDtoBuilder<TestDto>({}).useValidator(() => error);
       const dto = builder.build();
       // Assert
       expect(dto).toEqual(left(expect.any(Error)));
@@ -285,7 +285,7 @@ describe('(Unit) Dto Builder', () => {
         foo: string;
       }
       // Act
-      const builder = createBuilder<TestDto>({});
+      const builder = createDtoBuilder<TestDto>({});
       const returnedBuilder = builder.useValidator(() => true);
       // Assert
       expect(builder).toBe(returnedBuilder);
@@ -307,7 +307,7 @@ describe('(Unit) Dto Builder', () => {
         return obj;
       }
       // Act
-      const builder = createBuilder<TestDto>({ foo: value }).useTransformer(
+      const builder = createDtoBuilder<TestDto>({ foo: value }).useTransformer(
         transform,
       );
       const dto = builder.build();

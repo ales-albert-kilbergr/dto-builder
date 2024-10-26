@@ -73,16 +73,17 @@ function extractKey<DTO>(prefix: string, prop: string): keyof DTO {
     .replace(/^[A-Z]/, (match) => match.toLowerCase()) as keyof DTO;
 }
 
-export function createBuilder<DTO extends object | null>(
-  initData: Partial<DTO> = {},
-): DtoBuilder<DTO> {
+export function createDtoBuilder<
+  DTO extends object | null,
+  BASE extends object = object,
+>(baseMethods?: BASE, initData: Partial<DTO> = {}): DtoBuilder<DTO> {
   const dto: Partial<DTO> = initData;
 
   let validator: DtoObjectValidator<DTO> | undefined;
   let transformer: DtoObjectTransformer<DTO> | undefined;
 
   function clone(): DtoBuilder<DTO> {
-    const clone = createBuilder<DTO>({ ...dto });
+    const clone = createDtoBuilder<DTO>({ ...dto });
 
     clone.useTransformer(transformer);
     clone.useValidator(validator);
@@ -93,7 +94,7 @@ export function createBuilder<DTO extends object | null>(
   function extend<EXT_DTO extends object>(
     override: Partial<DTO & EXT_DTO> = {},
   ): DtoBuilder<DTO & EXT_DTO> {
-    const extension = createBuilder<DTO & EXT_DTO>({ ...dto, ...override });
+    const extension = createDtoBuilder<DTO & EXT_DTO>({ ...dto, ...override });
 
     extension.useTransformer(
       transformer as DtoObjectTransformer<DTO & EXT_DTO>,
@@ -177,6 +178,7 @@ export function createBuilder<DTO extends object | null>(
   }
 
   const base: DtoBuilderBase<DTO> = {
+    ...(baseMethods || {}),
     clone,
     extend,
     patch,
@@ -192,7 +194,11 @@ export function createBuilder<DTO extends object | null>(
       const baseObj: any = base;
       if (prop in baseObj && typeof baseObj[prop] === 'function') {
         return (...args: any[]) => {
-          return Reflect.apply(baseObj[prop], baseObj, args);
+          const result = Reflect.apply(baseObj[prop], baseObj, args);
+          // If the method returns the base object ref, we expect that it
+          // is a chaining method and we should return the wrapper builder
+          // instead.
+          return result === baseObj ? builder : result;
         };
       }
       // 2: --------------------------------------------------------------------
