@@ -73,10 +73,9 @@ function extractKey<DTO>(prefix: string, prop: string): keyof DTO {
     .replace(/^[A-Z]/, (match) => match.toLowerCase()) as keyof DTO;
 }
 
-export function createDtoBuilder<
-  DTO extends object | null,
-  BASE extends object = object,
->(baseMethods?: BASE, initData: Partial<DTO> = {}): DtoBuilder<DTO> {
+export function createDtoBuilder<DTO extends object | null>(
+  initData: Partial<DTO> = {},
+): DtoBuilder<DTO> {
   const dto: Partial<DTO> = initData;
 
   let validator: DtoObjectValidator<DTO> | undefined;
@@ -178,7 +177,6 @@ export function createDtoBuilder<
   }
 
   const base: DtoBuilderBase<DTO> = {
-    ...(baseMethods || {}),
     clone,
     extend,
     patch,
