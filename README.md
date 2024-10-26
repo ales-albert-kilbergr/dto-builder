@@ -19,7 +19,7 @@ yarn add @kilbergr/dto-builder
 ## Usage
 
 ```typescript
-import { createBuilder } from '@kilbergr/dto-builder';
+import { createDtoBuilder } from '@kilbergr/dto-builder';
 ```
 
 ## Examples
@@ -28,7 +28,7 @@ import { createBuilder } from '@kilbergr/dto-builder';
 
 ```typescript
 import { isRight } from 'fp-ts/Either';
-import { createBuilder } from '@kilbergr/dto-builder';
+import { createDtoBuilder } from '@kilbergr/dto-builder';
 
 interface User {
   id: number;
@@ -37,7 +37,7 @@ interface User {
   tags: string[];
 }
 
-const builder = createBuilder<User>();
+const builder = createDtoBuilder<User>();
 
 const user = builder
   .setId(1)
@@ -58,7 +58,7 @@ if (isRight(user)) {
 Override a fragment of the DTO.
 
 ```typescript
-import { createBuilder } from '@kilbergr/dto-builder';
+import { createDtoBuilder } from '@kilbergr/dto-builder';
 
 interface User {
   id: number;
@@ -66,7 +66,7 @@ interface User {
   email: string;
 }
 
-const builder = createBuilder<User>();
+const builder = createDtoBuilder<User>();
 
 const userBuilder = builder
   .setId(1)
@@ -84,7 +84,7 @@ userBuilder.patch({
 Share a common data between multiple DTOs.
 
 ```typescript
-import { createBuilder } from '@kilbergr/dto-builder';
+import { createDtoBuilder } from '@kilbergr/dto-builder';
 
 interface User {
   id: number;
@@ -93,7 +93,7 @@ interface User {
   organization: string;
 }
 
-const userBuilder = createBuilder<User>().setOrganization('Test Inc.');
+const userBuilder = createDtoBuilder<User>().setOrganization('Test Inc.');
 const userOne = userBuilder
   .clone()
   .setId(1)
@@ -112,13 +112,13 @@ const userTwo = userBuilder
 ### Counting arrays
 
 ```typescript
-import { createBuilder } from '@kilbergr/dto-builder';
+import { createDtoBuilder } from '@kilbergr/dto-builder';
 
 interface WithTags {
   tags: string[];
 }
 
-const builder = createBuilder<WithTags>().addTags('tag1', 'tag2', 'tag3');
+const builder = createDtoBuilder<WithTags>().addTags('tag1', 'tag2', 'tag3');
 
 const tagsCount = builder.countTags();
 ```
@@ -131,7 +131,7 @@ with ajv.
 
 ```typescript
 import { Ajv } from 'ajv';
-import { createBuilder } from '@kilbergr/dto-builder';
+import { createDtoBuilder } from '@kilbergr/dto-builder';
 
 const ajv = new Ajv();
 
@@ -157,7 +157,7 @@ function validateUserDto(dto: UserDto): boolean {
   return true;
 }
 
-const userBuilder = createBuilder<UserDto, UserBuilderError>({}, {
+const userBuilder = createDtoBuilder<UserDto, UserBuilderError>({}, {
   validate: validateUserDto
 });
 
