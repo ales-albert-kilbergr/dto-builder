@@ -17,7 +17,11 @@ export function extractKey<DTO extends object = object>(
     .replace(new RegExp(`^${prefix}`), '')
     .replace(/^[A-Z]/, (match) => match.toLowerCase()) as keyof DTO;
 }
-
+/**
+ * The utility class to build a data transfer object. (Data only object).
+ * The DTO builder takes an interface of a DTO and generates getters and setters
+ * for its properties.
+ */
 export class DtoBuilder<DTO extends object = object> {
   protected dto: Partial<DTO>;
 
@@ -115,7 +119,15 @@ export class DtoBuilder<DTO extends object = object> {
 
     return proxy;
   }
-
+  /**
+   * Set whole DTO or a specific property of the DTO. If the key is not
+   * provided, the method will set the whole DTO object. Otherwise, it will
+   * set the specific property of the DTO.
+   *
+   * The method is chainable.
+   *
+   * @param value
+   */
   public set(value: DTO): this;
   public set(key: keyof DTO, value: DTO[keyof DTO]): this;
   public set(keyOrValue: keyof DTO | DTO, value?: DTO[keyof DTO]): this {
@@ -133,7 +145,11 @@ export class DtoBuilder<DTO extends object = object> {
 
     return this;
   }
-
+  /**
+   * Retrieve the DTO object or a specific property from the DTO.
+   * If no key is provided, the method will return the entire DTO
+   * in its current state.
+   */
   public get(): Partial<DTO>;
   public get(key: keyof DTO): DTO[keyof DTO] | undefined;
   public get(key?: keyof DTO): Partial<DTO> | DTO[keyof DTO] | undefined {
@@ -143,7 +159,17 @@ export class DtoBuilder<DTO extends object = object> {
 
     return this.dto;
   }
-
+  /**
+   * Create a clone of the current builder instance. The clone will take the
+   * current DTO state as its initial state. As a consequence, if the clone
+   * calls the `reset` method, it will revert to the current DTO state in
+   * which the clone was created. The clone method will always create an
+   * instance of the current builder class.
+   *
+   * Method is chainable.
+   *
+   * @returns {this} The cloned builder instance.
+   */
   public clone(): this {
     const self = this.constructor as any;
     const clone = self.create(deepClone(this.dto));
@@ -156,6 +182,8 @@ export class DtoBuilder<DTO extends object = object> {
   /**
    * Reset the builder back to the initial state.
    *
+   * Method is chainable.
+   *
    * @returns {this} The builder instance.
    */
   public reset(): this {
@@ -163,13 +191,34 @@ export class DtoBuilder<DTO extends object = object> {
 
     return this;
   }
-
+  /**
+   * Use a validator function to validate the DTO object before building it.
+   * The validator function should return `true` if the DTO object is valid.
+   * Otherwise, it should return an error or an array of errors.
+   *
+   * This is useful when we want to integrate something like class-validator
+   * or ajv schema validation of our DTO object.
+   *
+   * Method is chainable.
+   *
+   * @param validatorFn
+   * @returns
+   */
   public useValidator(validatorFn?: DtoObjectValidator<DTO>): this {
     this.validator = validatorFn;
 
     return this;
   }
-
+  /**
+   * Use a transformation when a DTO object is built. This is useful when we
+   * want to integrate something like class-transformer to convert a plain
+   * object to a class instance.
+   *
+   * Method is chainable.
+   *
+   * @param transformerFn The transformer function.
+   * @returns {this} The builder instance.
+   */
   public useTransformer(transformerFn?: DtoObjectTransformer<DTO>): this {
     this.transformer = transformerFn;
 
