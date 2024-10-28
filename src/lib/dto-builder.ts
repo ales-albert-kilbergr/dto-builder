@@ -21,12 +21,15 @@ export function extractKey<DTO extends object = object>(
 export class DtoBuilder<DTO extends object = object> {
   protected dto: Partial<DTO>;
 
+  protected initData: Partial<DTO>;
+
   protected validator: DtoObjectValidator<DTO> | undefined;
 
   protected transformer: DtoObjectTransformer<DTO> | undefined;
 
   public constructor(initData: Partial<DTO> = {}) {
-    this.dto = initData;
+    this.initData = initData;
+    this.dto = deepClone(initData);
   }
 
   public static create<
@@ -149,6 +152,16 @@ export class DtoBuilder<DTO extends object = object> {
     clone.useValidator(this.validator);
 
     return clone as unknown as this;
+  }
+  /**
+   * Reset the builder back to the initial state.
+   *
+   * @returns {this} The builder instance.
+   */
+  public reset(): this {
+    this.dto = deepClone(this.initData);
+
+    return this;
   }
 
   public useValidator(validatorFn?: DtoObjectValidator<DTO>): this {

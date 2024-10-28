@@ -508,6 +508,35 @@ describe('(Unit) DtoBuilder', () => {
     });
   });
 
+  describe('when resetting the builder', () => {
+    it('should reset the builder to the initial state', () => {
+      // Arrange
+      interface TestDto {
+        foo: string;
+      }
+      const value = 'bar';
+      // Act
+      const builder = DtoBuilder.create<TestDto>();
+      builder.setFoo(value);
+      builder.reset();
+      // Assert
+      expect(builder.get()).toEqual({});
+    });
+
+    it('should return a reference to the builder', () => {
+      // Arrange
+      interface TestDto {
+        foo: string;
+      }
+      const value = 'bar';
+      // Act
+      const builder = DtoBuilder.create<TestDto>();
+      const returnedBuilder = builder.setFoo(value).reset();
+      // Assert
+      expect(returnedBuilder).toBe(builder);
+    });
+  });
+
   // MARK: Build
   describe('when building the DTO object', () => {
     it('should build the DTO object', () => {
