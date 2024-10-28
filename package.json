@@ -1,7 +1,7 @@
 {
   "name": "@kilbergr/dto-builder",
   "description": "Data only object builder from a typescript interface",
-  "version": "0.2.0-Dev.2",
+  "version": "0.2.0-Dev.3",
   "author": {
     "name": "Kilbergr",
     "email": "ales.albert@kilbergr.eu"
