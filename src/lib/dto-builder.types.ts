@@ -23,7 +23,7 @@ export type CountMethod<T, K extends keyof T> = T[K] extends any[]
  * A helper type which defines the validator function for the DTO object.
  */
 export type DtoObjectValidator<DTO extends object | null> = (
-  data: Partial<DTO>,
+  data: DTO,
 ) => true | Error | Error[];
 /**
  * A helper type which defines the transformer function for the DTO object.

@@ -643,4 +643,54 @@ describe('(Unit) DtoBuilder', () => {
       expect(dto.right).toBeInstanceOf(TestDto);
     }
   });
+
+  describe('when getting the transformer', () => {
+    it('should return the transformer function', () => {
+      // Arrange
+      interface TestDto {
+        foo: string;
+      }
+      const transformer = (): TestDto => ({ foo: 'bar' });
+      // Act
+      const builder = DtoBuilder.create<TestDto>().useTransformer(transformer);
+      const transformerFn = builder.getTransformer();
+      // Assert
+      expect(transformerFn).toBe(transformer);
+    });
+
+    it('should return undefined if the transformer is not set', () => {
+      // Arrange
+      // Act
+      const builder = DtoBuilder.create();
+      const transformerFn = builder.getTransformer();
+      // Assert
+      expect(transformerFn).toBeUndefined();
+    });
+  });
+
+  describe('when getting the validator', () => {
+    it('should return the validator function', () => {
+      // Arrange
+      interface TestDto {
+        foo: string;
+      }
+      function validator(dto: TestDto): true | Error {
+        return !!dto;
+      }
+      // Act
+      const builder = DtoBuilder.create<TestDto>().useValidator(validator);
+      const validatorFn = builder.getValidator();
+      // Assert
+      expect(validatorFn).toBe(validator);
+    });
+
+    it('should return undefined if the validator is not set', () => {
+      // Arrange
+      // Act
+      const builder = DtoBuilder.create();
+      const validatorFn = builder.getValidator();
+      // Assert
+      expect(validatorFn).toBeUndefined();
+    });
+  });
 });

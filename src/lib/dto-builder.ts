@@ -209,6 +209,10 @@ export class DtoBuilder<DTO extends object = object> {
 
     return this;
   }
+
+  public getValidator(): DtoObjectValidator<DTO> | undefined {
+    return this.validator;
+  }
   /**
    * Use a transformation when a DTO object is built. This is useful when we
    * want to integrate something like class-transformer to convert a plain
@@ -225,6 +229,10 @@ export class DtoBuilder<DTO extends object = object> {
     return this;
   }
 
+  public getTransformer(): DtoObjectTransformer<DTO> | undefined {
+    return this.transformer;
+  }
+
   public build(
     override: Partial<DTO> = {},
   ): Either<DtoValidationFailedException<DTO>, DTO> {
@@ -234,7 +242,7 @@ export class DtoBuilder<DTO extends object = object> {
       : (dtoData as DTO);
 
     if (this.validator) {
-      const validationError = this.validator(dtoData);
+      const validationError = this.validator(dtoObj);
 
       if (validationError !== true) {
         return left(
