@@ -233,16 +233,16 @@ export class DtoBuilder<DTO extends object = object> {
     return this.transformer;
   }
 
-  public build(
+  public async build(
     override: Partial<DTO> = {},
-  ): Either<DtoValidationFailedException<DTO>, DTO> {
+  ): Promise<Either<DtoValidationFailedException<DTO>, DTO>> {
     const dtoData = Object.assign({}, this.dto, override);
     const dtoObj = this.transformer
       ? this.transformer(dtoData)
       : (dtoData as DTO);
 
     if (this.validator) {
-      const validationError = this.validator(dtoObj);
+      const validationError = await this.validator(dtoObj);
 
       if (validationError !== true) {
         return left(

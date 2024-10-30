@@ -3,6 +3,7 @@ import { isRight, left, right } from 'fp-ts/Either';
 import type { DtoBuilderProxy } from './dto-builder.types';
 
 describe('(Unit) DtoBuilder', () => {
+  // MARK: Create
   describe('create', () => {
     it('should set a default empty data in constructor', () => {
       // Arrange
@@ -96,6 +97,7 @@ describe('(Unit) DtoBuilder', () => {
     });
   });
 
+  // MARK: Set
   describe('set', () => {
     it('should set a value on the DTO', () => {
       // Arrange
@@ -161,7 +163,7 @@ describe('(Unit) DtoBuilder', () => {
       expect(returnedBuilder.get()).toEqual({ foo: 'bar', bar: 42 });
     });
   });
-
+  // MARK: Get
   describe('get', () => {
     it('should get the value from the DTO', () => {
       // Arrange
@@ -206,7 +208,7 @@ describe('(Unit) DtoBuilder', () => {
       expect(patched.getFoo()).toBe(newValue);
     });
 
-    it('should only change the patched value', () => {
+    it('should only change the patched value', async () => {
       // Arrange
       interface TestDto {
         foo: string;
@@ -219,10 +221,10 @@ describe('(Unit) DtoBuilder', () => {
       builder.setFoo(value).setBar(42);
       builder.patch({ foo: newValue });
       // Assert
-      expect(builder.build()).toEqual(right({ foo: newValue, bar: 42 }));
+      expect(await builder.build()).toEqual(right({ foo: newValue, bar: 42 }));
     });
 
-    it('should allow to chain the patch method', () => {
+    it('should allow to chain the patch method', async () => {
       // Arrange
       interface TestDto {
         foo: string;
@@ -234,10 +236,10 @@ describe('(Unit) DtoBuilder', () => {
       const builder = DtoBuilder.create<TestDto>();
       builder.setFoo(value).setBar(42).patch({ foo: newValue });
       // Assert
-      expect(builder.build()).toEqual(right({ foo: newValue, bar: 42 }));
+      expect(await builder.build()).toEqual(right({ foo: newValue, bar: 42 }));
     });
 
-    it('should allow to chain the patch method on a child builder', () => {
+    it('should allow to chain the patch method on a child builder', async () => {
       // Arrange
       interface TestDto {
         foo: string;
@@ -250,7 +252,7 @@ describe('(Unit) DtoBuilder', () => {
       const builder = TestBuilder.create<TestDto, TestBuilder>();
       builder.setFoo(value).setBar(42).patch({ foo: newValue });
       // Assert
-      expect(builder.build()).toEqual(right({ foo: newValue, bar: 42 }));
+      expect(await builder.build()).toEqual(right({ foo: newValue, bar: 42 }));
     });
   });
 
@@ -539,7 +541,7 @@ describe('(Unit) DtoBuilder', () => {
 
   // MARK: Build
   describe('when building the DTO object', () => {
-    it('should build the DTO object', () => {
+    it('should build the DTO object', async () => {
       // Arrange
       interface TestDto {
         foo: string;
@@ -548,12 +550,12 @@ describe('(Unit) DtoBuilder', () => {
       // Act
       const builder = DtoBuilder.create<TestDto>();
       builder.setFoo(value);
-      const dto = builder.build();
+      const dto = await builder.build();
       // Assert
       expect(dto).toEqual(right({ foo: value }));
     });
 
-    it('should keep the camel cased properties', () => {
+    it('should keep the camel cased properties', async () => {
       // Arrange
       interface TestDto {
         fooBar: string;
@@ -562,12 +564,12 @@ describe('(Unit) DtoBuilder', () => {
       // Act
       const builder = DtoBuilder.create<TestDto>();
       builder.setFooBar(value);
-      const dto = builder.build();
+      const dto = await builder.build();
       // Assert
       expect(dto).toEqual(right({ fooBar: value }));
     });
 
-    it('should return a validation error if the DTO object is not valid', () => {
+    it('should return a validation error if the DTO object is not valid', async () => {
       // Arrange
       interface TestDto {
         foo: string;
@@ -575,12 +577,12 @@ describe('(Unit) DtoBuilder', () => {
       const error = new Error('Invalid DTO object');
       // Act
       const builder = DtoBuilder.create<TestDto>({}).useValidator(() => error);
-      const dto = builder.build();
+      const dto = await builder.build();
       // Assert
       expect(dto).toEqual(left(expect.any(Error)));
     });
 
-    it('should join the validation errors if there are multiple', () => {
+    it('should join the validation errors if there are multiple', async () => {
       // Arrange
       interface TestDto {
         foo: string;
@@ -593,7 +595,7 @@ describe('(Unit) DtoBuilder', () => {
         errorOne,
         errorTwo,
       ]);
-      const dto = builder.build();
+      const dto = await builder.build();
       // Assert
       expect(dto).toEqual(
         left(
@@ -620,7 +622,7 @@ describe('(Unit) DtoBuilder', () => {
     });
   });
 
-  it('should transform the DTO object', () => {
+  it('should transform the DTO object', async () => {
     // Arrange
     class TestDto {
       public foo?: string;
@@ -636,7 +638,7 @@ describe('(Unit) DtoBuilder', () => {
     const builder = DtoBuilder.create<TestDto>({ foo: value }).useTransformer(
       transform,
     );
-    const dto = builder.build();
+    const dto = await builder.build();
     // Assert
     expect(isRight(dto)).toBeTruthy();
     if (isRight(dto)) {
