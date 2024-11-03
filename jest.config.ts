@@ -22,14 +22,6 @@ export default {
       statements: 50,
     },
   },
-  coveragePathIgnorePatterns: [
-    '/node_modules/',
-    'index.ts',
-    'stub.ts',
-    '/src/__REM/',
-  ],
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    '/src/__REM/', // Add this line to ignore the __REM folder
-  ],
+  coveragePathIgnorePatterns: ['/node_modules/', 'index.ts', 'stub.ts'],
+  testPathIgnorePatterns: ['/node_modules/'],
 };
